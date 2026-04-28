@@ -1,5 +1,5 @@
 import jwt from "jsonwebtoken";
-import { JWT_SECRET } from "./config";
+import { JWT_SECRET } from "./config.js";
 
 export const authMiddleware = async (req, res, next) => {
     const headers = req.headers.Authorization;
@@ -19,7 +19,9 @@ export const authMiddleware = async (req, res, next) => {
 
     }
     catch(err){
-
-
+         return res.json({
+            message: "server error",
+            error: err.message
+        })
     }
 }

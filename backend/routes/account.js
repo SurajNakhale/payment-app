@@ -1,7 +1,8 @@
 import express from "express";
-import { Account } from "../db";
-import { authMiddleware } from "../middleware";
 import mongoose from "mongoose";
+
+import { Account } from "../db.js";
+import { authMiddleware } from "../middleware.js";
 const accountRouter = express();
 
 

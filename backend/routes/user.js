@@ -1,19 +1,16 @@
 import express from "express";
-import z, { jwt } from "zod";
-import { Account, User } from "../db";
+import z from "zod";
+import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
-import { JWT_SECRET } from "../config";
-import { authMiddleware } from "../middleware";
+
+import { Account, User } from "../db.js";
+import { JWT_SECRET } from "../config.js";
+import { authMiddleware } from "../middleware.js";
+import { signinSchema, signupSchema, updatedSchema } from "../types.js";
+
+
 
 const userRouter = express();
-
-const signupSchema = z.object({
-    username: z.email(),
-    password: z.string(),
-    firstname: z.string(),
-    lastname: z.string()
-})
-
 
 userRouter.post("/signup", async(req, res) => {
     const result = signupSchema.safeParse(req.body);
@@ -62,13 +59,24 @@ userRouter.post("/signup", async(req, res) => {
 
 
     }catch(err){
-
+        return res.json({
+            message: "server error",
+            error: err.message
+        })
     }
 
 })
 
 userRouter.post("/signin", async(req, res) => {
-    const {username, password} = req.body;
+    const parsedData = signinSchema.safeParse(req.body);
+
+    if(!parsedData.success){
+        return res.json({
+            message: "invalid format"
+        })
+    }
+
+    const { username, password } = parsedData.data;
 
     try{
         const user = await User.findOne({ username });
@@ -96,16 +104,14 @@ userRouter.post("/signin", async(req, res) => {
 
     }
     catch(err){
-
+         return res.json({
+            message: "server error",
+            error: err.message
+        })
     }
 })
 
-const updatedSchema = z.object({
-    password: z.string().optional(),
-    lastname: z.string().optional(),
-    firstname: z.string().optional()
 
-})
 userRouter.put("/", authMiddleware, async (req, res) => {
     const userId = req.userId;
     const result  = updatedSchema.safeParse(req.body);
@@ -117,20 +123,28 @@ userRouter.put("/", authMiddleware, async (req, res) => {
     }
 
     const data = result.data;
+    try{
+        
+        const update = await User.updateOne({ _id: userId }, 
+            {$set: data}
+        );
+    
+        if (update.modifiedCount === 0) {
+            return res.json({
+                message: "No changes made"
+            });
+        }
+    
+        res.json({
+            message: "updated successfully"
+        })
 
-    const update = await User.updateOne({ _id: userId }, 
-        {$set: data}
-    );
-
-    if (update.modifiedCount === 0) {
-        return res.json({
-            message: "No changes made"
-        });
+    }catch(err){
+          return res.json({
+            message: "server error",
+            error: err.message
+        })
     }
-
-    res.json({
-        message: "updated successfully"
-    })
 
 })
 
@@ -162,7 +176,10 @@ userRouter.get("/bulk", authMiddleware, async(req, res) => {
         })
     }
     catch(err){
-
+         return res.json({
+            message: "server error",
+            error: err.message
+        })
     }
 
 })
